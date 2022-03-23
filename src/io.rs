@@ -1,10 +1,9 @@
-pub mod io {
-    use std::{fs::read_to_string, error::Error};
+use std::fs::read_to_string;
+use crate::errors::MyError;
 
-    // https://crates.io/crates/markdown
+// https://crates.io/crates/markdown
 
-    pub fn render_markdown(file: &str) -> Result<String, Box<dyn Error>> {
-        let source = read_to_string(file)?;
-        Ok(markdown::to_html(&source))
-    }
+pub fn render_markdown(file: &str) -> Result<String, MyError> {
+    let source = read_to_string(file)?;
+    Ok(markdown::to_html(&source))
 }

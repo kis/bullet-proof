@@ -3,12 +3,13 @@ mod lib;
 mod options;
 mod result;
 mod io;
+mod errors;
+mod closures;
 
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::net::Ipv4Addr;
 use std::time::Instant;
-use std::error::Error;
 
 use utils::Light;
 use utils::house_light::HouseLight;
@@ -18,7 +19,9 @@ use lib::library::{greet, print_str, needs_string};
 
 use options::options::{returns_some, returns_none};
 use result::result::{returns_ok, returns_err};
-use io::io::render_markdown;
+use io::render_markdown;
+use errors::MyError;
+use closures::{make_adder, DynamicBehavior};
 
 fn print_state(light: &impl Light) {
     println!("{}'s state is : {:?}", light.get_name(), light.get_state());
@@ -104,10 +107,14 @@ fn res() {
     println!("{:?}", err);
 }
 
-fn io() -> Result<(), Box<dyn Error>> {
+fn io() -> Result<(), MyError> {
     let html = render_markdown("./README.md")?;
     println!("{}", html);
     Ok(())
+}
+
+fn compose<T>(f: impl Fn(T) -> T, g: impl Fn(T) -> T) -> impl Fn(T) -> T {
+    move |i: T| f(g(i))
 }
 
 fn main() {
@@ -119,4 +126,14 @@ fn main() {
     opts();
     res();
     io();
+
+    let plus_two = make_adder(2);
+    plus_two(32);
+    let plus_three = make_adder(3);
+    let times_two = |i: i32| i * 2;
+    let compose_them = compose(plus_three, times_two);
+    println!("{} * 2 + 3 = {}", 10, compose_them(10));
+
+    let square = DynamicBehavior::new(Box::new(|num: i64| num * num));
+    println!("{} squared to {}", 5, square.run(5));
 }
