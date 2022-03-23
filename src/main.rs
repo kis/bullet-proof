@@ -2,10 +2,13 @@ mod utils;
 mod lib;
 mod options;
 mod result;
+mod io;
 
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::net::Ipv4Addr;
+use std::time::Instant;
+use std::error::Error;
 
 use utils::Light;
 use utils::house_light::HouseLight;
@@ -15,6 +18,7 @@ use lib::library::{greet, print_str, needs_string};
 
 use options::options::{returns_some, returns_none};
 use result::result::{returns_ok, returns_err};
+use io::io::render_markdown;
 
 fn print_state(light: &impl Light) {
     println!("{}'s state is : {:?}", light.get_name(), light.get_state());
@@ -66,6 +70,22 @@ fn strings() {
     print_str("Literal slice");
     needs_string(string_proper);
     needs_string(ip_address);
+
+    // unwrap syntax
+    let default_string = "Default value".to_owned();
+    let unwrap_or = returns_none().unwrap_or(default_string);
+    println!("returns_none().unwrap_or(...): {:?}", unwrap_or);
+
+    let unwrap_or_else = returns_none()
+        .unwrap_or_else(|| format!("Default value from a function at time {:?}", Instant
+        ::now()));
+    println!(
+        "returns_none().unwrap_or_else(|| {{...}}): {:?}",
+        unwrap_or_else
+    );
+
+    let default_unwrap = returns_none().unwrap_or_default();
+    println!("returns_none().unwrap_or_default(...): {:?}", default_unwrap);
 }
 
 fn opts() {
@@ -84,6 +104,12 @@ fn res() {
     println!("{:?}", err);
 }
 
+fn io() -> Result<(), Box<dyn Error>> {
+    let html = render_markdown("./README.md")?;
+    println!("{}", html);
+    Ok(())
+}
+
 fn main() {
     greet("World".to_owned());
     maps();
@@ -92,4 +118,5 @@ fn main() {
     strings();
     opts();
     res();
+    io();
 }
