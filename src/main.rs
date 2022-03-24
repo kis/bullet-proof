@@ -5,11 +5,14 @@ mod result;
 mod io;
 mod errors;
 mod closures;
+mod loops;
 
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::net::Ipv4Addr;
 use std::time::Instant;
+use std::fmt::Display;
+use tokio::task::JoinHandle;
 
 use utils::Light;
 use utils::house_light::HouseLight;
@@ -22,6 +25,7 @@ use result::result::{returns_ok, returns_err};
 use io::render_markdown;
 use errors::MyError;
 use closures::{make_adder, DynamicBehavior};
+use loops::Worker;
 
 fn print_state(light: &impl Light) {
     println!("{}'s state is : {:?}", light.get_name(), light.get_state());
@@ -33,6 +37,10 @@ fn maps() {
     map.insert("key2", "value2");
     println!("{}", map.get("key1").unwrap_or(&""));
     println!("{}", map.get("key2").unwrap_or(&""));
+
+    for prop in map.keys() {
+        println!("key {} in map, value {}", prop, map.get(prop).unwrap());
+    }
 }
 
 fn structs() {
@@ -117,7 +125,32 @@ fn compose<T>(f: impl Fn(T) -> T, g: impl Fn(T) -> T) -> impl Fn(T) -> T {
     move |i: T| f(g(i))
 }
 
-fn main() {
+fn looping() {
+    let mut obj = Worker {
+        data: vec![1, 2, 3, 4],
+    };
+
+    while let Some(data) = obj.do_work() {
+        println!("loop {}", data)
+    }
+
+    let arr = vec![2, 4, 6];
+    let doubled: Vec<_> = arr.iter().map(|num| num * 2).collect();
+    println!("doubled {:?}", doubled);
+}
+
+async fn async_run() -> String {
+    "I'm async".to_owned()
+}
+
+fn async_print<T: Display + Send + 'static>(msg: T) -> JoinHandle<()> {
+    tokio::task::spawn(async move {
+        println!("task {}", msg);
+    })
+}
+
+#[tokio::main]
+async fn main() {
     greet("World".to_owned());
     maps();
     structs();
@@ -136,4 +169,17 @@ fn main() {
 
     let square = DynamicBehavior::new(Box::new(|num: i64| num * num));
     println!("{} squared to {}", 5, square.run(5));
+
+    looping();
+
+    let msg = async_run().await;
+    println!("async {}", msg);
+
+    let async_closure = || async {
+        "Async closure".to_owned()
+    };
+    let closure_msg = async_closure().await;
+    println!("async closure {}", closure_msg);
+
+    async_print("Hello");
 }
